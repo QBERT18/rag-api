@@ -1,0 +1,84 @@
+Cascade Forge — Fiscal Year 2025 Financial Summary
+====================================================
+
+Reporting period: 1 January 2025 — 31 December 2025
+Reporting currency: US Dollars (USD)
+
+Revenue
+-------
+
+Total annual recurring revenue (ARR) at year end: $24.0M
+Growth versus year-end 2024 ARR ($14.1M): +70.2%
+Net revenue retention (NRR): 128%
+Gross revenue retention (GRR): 96%
+
+Revenue by product line (FY 2025):
+
+  Helix CI ........................ $14.88M    (62%)
+  PulseDB .........................  $5.52M    (23%)
+  Stitch SDK ......................  $2.16M    ( 9%)
+  Professional services ...........  $1.44M    ( 6%)
+                                     ------    ----
+  Total ........................... $24.00M    100%
+
+Revenue by geography (FY 2025):
+
+  North America ................... $12.96M    (54%)
+  EMEA ............................  $7.20M    (30%)
+  APAC ............................  $2.88M    (12%)
+  LATAM ...........................  $0.96M    ( 4%)
+
+
+Customers
+---------
+
+Paying customers (end of period): 1,412
+Net new paying customers in 2025:   486
+Logo churn:                          74 (5.2% gross)
+Average annual contract value:  $17,000
+
+Top 10 customers contribute 22% of ARR; no single customer exceeds 4%.
+
+
+Headcount and Spend
+-------------------
+
+Headcount, year end:                127
+Headcount, year start:              101
+Net headcount growth:                +26 (+25.7%)
+
+Total operating expenses (FY 2025): $22.6M
+  Personnel ....................... $15.4M    (68%)
+  Cloud infrastructure ............  $2.8M    (12%)
+  Sales & marketing ...............  $2.1M    ( 9%)
+  Facilities & office .............  $0.9M    ( 4%)
+  Professional services ...........  $0.7M    ( 3%)
+  Other G&A .......................  $0.7M    ( 3%)
+
+
+Profitability
+-------------
+
+Gross margin: 78%
+Operating margin: 6% (first positive year)
+Free cash flow: +$0.9M (versus -$3.4M in 2024)
+
+Cash on balance sheet (31 Dec 2025): $38.2M
+  Runway at current burn ........... 42+ months
+
+
+Funding (as of year end)
+------------------------
+
+Total capital raised to date: $48.4M (across seed, Series A, Series B, and B-1 extension)
+Most recent round: Series B-1 extension, November 2025, +$5M from existing investors
+Lead investor on Series B: Aurora Capital
+Other notable investors: Bridgewater Ventures, Northstar Seed Partners, Ridgeline Growth
+
+
+Notes
+-----
+
+(1) All figures are unaudited. The 2025 audit is scheduled for completion by 30 April 2026.
+(2) ARR is calculated as the annualized value of subscription contracts active on 31 December 2025, excluding professional services and one-time fees.
+(3) NRR includes expansion, contraction, and churn within the cohort of customers active 12 months prior.

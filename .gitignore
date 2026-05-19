@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+
+# Nuxt
+.output/
+.data/
+.nuxt/
+.nitro/
+.cache/
+dist/
+
+# Chroma DB data
+chroma_db/
+backend/chroma_db/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.key
+credentials*.json
+
+# Logs
+logs/
+*.log
+
+# OS / editors
+.DS_Store
+.idea/
+.fleet/
+.vscode/
+
+# Claude local settings
+.claude/settings.local.json

@@ -1,0 +1,96 @@
+Cascade Forge — Staff Directory (as of January 2026)
+
+Executive Team
+==============
+
+Maya Chen          Chief Executive Officer        Vancouver, BC
+Daniel Park        Chief Technology Officer       Vancouver, BC
+Priya Iyer         Chief Financial Officer        Vancouver, BC
+Tomás Alvarado     VP of Engineering              Berlin, DE
+Hannah Brookes     VP of Product                  Vancouver, BC
+Lior Friedman      Head of Developer Relations    Tel Aviv, IL (remote)
+Sofia Reyes        Head of People                 Vancouver, BC
+
+
+Engineering — Helix CI
+======================
+
+Tomás Alvarado     VP of Engineering (also covers Helix CI)
+Ngozi Okafor       Engineering Manager, Build Agents
+Henrik Lindqvist   Staff Engineer, Cache Layer
+Yuki Tanaka        Senior Engineer, Scheduler
+Felipe Cordeiro    Senior Engineer, Integrations
+Aanya Bhatt        Engineer, Web UI
+Sven Kohler        Engineer, Web UI
+Ruth Nakamura      Engineer, SDKs
+Wojciech Zielinski Engineer, SDKs
+
+
+Engineering — PulseDB
+=====================
+
+Adaeze Eze         Engineering Manager
+Mathieu Lavoie     Staff Engineer, Storage Engine
+Ines Vidal         Senior Engineer, Query Planner
+Kenji Watanabe     Senior Engineer, Ingest Pipeline
+Cara Donovan       Engineer, Replication
+Pavel Sokolov      Engineer, Replication
+
+
+Engineering — Stitch SDK
+========================
+
+Reza Mostafavi     Engineering Manager
+Liana Petrescu     Staff Engineer, Collector
+Idris Karim        Senior Engineer, Auto-instrumentation
+Greta Schäfer      Engineer, Language SDKs
+Tomás (Tom) Reid   Engineer, Language SDKs
+
+
+Platform & SRE
+==============
+
+Bea Olusanya       Engineering Manager, Platform
+Andre Kowalski     Staff SRE
+Mei Lin            Senior SRE
+Jordan Petrov      SRE, On-Call Tooling
+Dilan Mendis       SRE, Networking
+Sara Akhtar        Security Engineer, Lead
+
+
+Product, Design, DevRel
+=======================
+
+Hannah Brookes     VP of Product
+Olu Adeyemi        Senior Product Manager, Helix CI
+Camila Rosa        Product Manager, PulseDB
+Marc Beauchamp     Product Manager, Stitch SDK
+Astrid Berg        Lead Designer
+Lior Friedman      Head of Developer Relations
+Quentin Rojas      Developer Advocate
+Hema Subramanian   Developer Advocate
+
+
+Sales, Marketing, Customer Success
+==================================
+
+Esther Wong        VP of Sales
+Robert Hale        Account Executive, NA
+Anika Falk         Account Executive, EMEA
+Wei Zhang          Account Executive, APAC
+Carlos Mendoza     Customer Success Manager
+Linnea Aaltonen    Customer Success Manager
+Mira Hashimoto     Marketing Lead
+
+
+Finance & People
+================
+
+Priya Iyer         Chief Financial Officer
+David Cho          Senior Accountant
+Naomi Olusola      Recruiter
+Pia Lehmann        People Operations
+
+
+Headcount: 127 across 18 countries (Q1 2026).
+Open requisitions: 9 (5 engineering, 2 sales, 1 design, 1 finance).

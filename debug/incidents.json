@@ -1,0 +1,56 @@
+[
+  {
+    "incident_id": "INC-2025-014",
+    "severity": "SEV1",
+    "date": "2025-09-23",
+    "service": "Helix CI",
+    "summary": "Build cache eviction caused a 38-minute global build outage. Customers saw cache-miss rates spike to 100% before the rollback completed.",
+    "postmortem_owner": "Henrik Lindqvist",
+    "status": "resolved"
+  },
+  {
+    "incident_id": "INC-2025-019",
+    "severity": "SEV2",
+    "date": "2025-11-04",
+    "service": "PulseDB",
+    "summary": "Ingest backpressure caused 12% point loss in the EU region for 22 minutes after a downstream Kafka broker went unhealthy.",
+    "postmortem_owner": "Mathieu Lavoie",
+    "status": "resolved"
+  },
+  {
+    "incident_id": "INC-2025-022",
+    "severity": "SEV3",
+    "date": "2025-11-28",
+    "service": "Stitch SDK",
+    "summary": "Collector v1.4.2 dropped distributed traces longer than 256 spans due to an off-by-one in the tail-sampler.",
+    "postmortem_owner": "Liana Petrescu",
+    "status": "resolved"
+  },
+  {
+    "incident_id": "INC-2026-002",
+    "severity": "SEV2",
+    "date": "2026-01-15",
+    "service": "Helix CI",
+    "summary": "Scheduler v3 canary rolled back after a deadlock between tenant queues caused 14 minutes of queued job stalls.",
+    "postmortem_owner": "Yuki Tanaka",
+    "status": "resolved"
+  },
+  {
+    "incident_id": "INC-2026-005",
+    "severity": "SEV1",
+    "date": "2026-02-08",
+    "service": "PulseDB",
+    "summary": "EU region experienced a 9-minute write outage after a faulty WAL compaction job consumed all node memory.",
+    "postmortem_owner": "Adaeze Eze",
+    "status": "resolved"
+  },
+  {
+    "incident_id": "INC-2026-009",
+    "severity": "SEV3",
+    "date": "2026-03-02",
+    "service": "Helix CI",
+    "summary": "Web UI flake caused intermittent 502 responses on the build details page for ~6% of paid customers over a 40-minute window.",
+    "postmortem_owner": "Aanya Bhatt",
+    "status": "monitoring"
+  }
+]
