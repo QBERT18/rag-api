@@ -1,7 +1,10 @@
-ASK_PROMPT = """Use the following context to answer the question.
-If the context doesn't contain relevant information, say so.
+SYSTEM_PROMPT = (
+    "You are a helpful assistant. Use the provided context when relevant. "
+    "If the context doesn't answer the question, say so. "
+    "Maintain continuity with the prior conversation."
+)
 
-Context:
+CONTEXT_TEMPLATE = """Context:
 {context}
 
 Question: {question}"""

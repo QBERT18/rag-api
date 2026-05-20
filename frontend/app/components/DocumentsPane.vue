@@ -213,7 +213,7 @@ onMounted(refresh)
     <footer v-if="docs.length" class="border-t border-slate-200 p-3">
       <button
         type="button"
-        class="w-full rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+        class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
         @click="onClearAll"
       >
         Clear all

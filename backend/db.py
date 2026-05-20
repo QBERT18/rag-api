@@ -3,15 +3,17 @@ from chromadb.utils.embedding_functions.ollama_embedding_function import (
     OllamaEmbeddingFunction,
 )
 
-_client = chromadb.PersistentClient(path="./chroma_db")
+from config import settings
+
+_client = chromadb.PersistentClient(path=settings.chroma_db_path)
 
 _ef = OllamaEmbeddingFunction(
-    model_name="nomic-embed-text",
-    url="http://localhost:11434",
+    model_name=settings.ollama_embedding_model,
+    url=settings.ollama_base_url,
 )
 
 collection = _client.get_or_create_collection(
-    name="personal_profile",
+    name=settings.chroma_collection_name,
     embedding_function=_ef,
 )
 
