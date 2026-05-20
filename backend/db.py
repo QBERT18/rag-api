@@ -12,14 +12,28 @@ _ef = OllamaEmbeddingFunction(
     url=settings.ollama_base_url,
 )
 
-collection = _client.get_or_create_collection(
-    name=settings.chroma_collection_name,
-    embedding_function=_ef,
-)
+
+def collection_name(workspace_id: str) -> str:
+    return f"ws_{workspace_id}"
 
 
-def reset_collection() -> int:
-    ids = collection.get()["ids"]
+def get_collection(workspace_id: str):
+    return _client.get_or_create_collection(
+        name=collection_name(workspace_id),
+        embedding_function=_ef,
+    )
+
+
+def drop_collection(workspace_id: str) -> None:
+    try:
+        _client.delete_collection(collection_name(workspace_id))
+    except Exception:
+        pass
+
+
+def clear_collection(workspace_id: str) -> int:
+    col = get_collection(workspace_id)
+    ids = col.get()["ids"]
     if ids:
-        collection.delete(ids=ids)
+        col.delete(ids=ids)
     return len(ids)

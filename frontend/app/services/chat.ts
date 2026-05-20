@@ -7,16 +7,9 @@ export interface Citation {
   excerpt: string
 }
 
-export interface Chat {
-  id: number
-  title: string
-  created_at: string
-  updated_at: string
-}
-
 export interface StoredMessage {
   id: number
-  chat_id: number
+  workspace_id: string
   role: 'user' | 'assistant'
   content: string
   sources: Citation[] | null
@@ -38,42 +31,19 @@ async function jsonRequest<T>(
   return (await res.json()) as T
 }
 
-export function listChats(): Promise<Chat[]> {
-  return jsonRequest<Chat[]>('/chats')
-}
-
-export function createChat(title?: string): Promise<Chat> {
-  return jsonRequest<Chat>('/chats', {
-    method: 'POST',
-    body: JSON.stringify({ title: title ?? null }),
-  })
-}
-
-export function renameChat(id: number, title: string): Promise<Chat> {
-  return jsonRequest<Chat>(`/chats/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ title }),
-  })
-}
-
-export async function deleteChat(id: number): Promise<void> {
-  const res = await fetch(`${API}/chats/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-}
-
-export function listMessages(chatId: number): Promise<StoredMessage[]> {
-  return jsonRequest<StoredMessage[]>(`/chats/${chatId}/messages`)
+export function listMessages(workspaceId: string): Promise<StoredMessage[]> {
+  return jsonRequest<StoredMessage[]>(`/workspaces/${workspaceId}/messages`)
 }
 
 export async function streamAsk(
-  chatId: number,
+  workspaceId: string,
   question: string,
   onToken: (chunk: string) => void,
   onSources: (sources: Citation[]) => void,
   onDone?: (messageId: number) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const url = `${API}/ask/${chatId}/stream?question=${encodeURIComponent(question)}`
+  const url = `${API}/ask/${workspaceId}/stream?question=${encodeURIComponent(question)}`
   const res = await fetch(url, { signal })
   if (!res.ok || !res.body) {
     throw new Error(`Stream failed: ${res.status} ${res.statusText}`)

@@ -1,7 +1,7 @@
 import math
 import re
 
-from db import collection
+from db import get_collection
 
 
 TOP_K = 6
@@ -90,7 +90,7 @@ def _neighbor_ids(metas: list[dict], have: set[str]) -> list[str]:
 
 
 def _expand_with_neighbors(
-    kept_docs: list[str], kept_metas: list[dict]
+    workspace_id: str, kept_docs: list[str], kept_metas: list[dict]
 ) -> tuple[list[str], list[dict]]:
     have = {
         f"{m.get('source')}::chunk{m.get('chunk_index')}" for m in kept_metas
@@ -99,7 +99,9 @@ def _expand_with_neighbors(
     if not candidates:
         return kept_docs, kept_metas
 
-    extra = collection.get(ids=candidates, include=["documents", "metadatas"])
+    extra = get_collection(workspace_id).get(
+        ids=candidates, include=["documents", "metadatas"]
+    )
     by_id = {
         cid: (d, m)
         for cid, d, m in zip(extra["ids"], extra["documents"], extra["metadatas"])
@@ -118,7 +120,8 @@ def _expand_with_neighbors(
     return kept_docs, kept_metas
 
 
-def retrieve(question: str) -> tuple[list[str], list[dict]]:
+def retrieve(workspace_id: str, question: str) -> tuple[list[str], list[dict]]:
+    collection = get_collection(workspace_id)
     merged: dict[str, tuple[float, str, dict]] = {}
     for sub in _split_query(question):
         results = collection.query(
@@ -146,4 +149,4 @@ def retrieve(question: str) -> tuple[list[str], list[dict]]:
         if len(kept_docs) >= TOP_K:
             break
 
-    return _expand_with_neighbors(kept_docs, kept_metas)
+    return _expand_with_neighbors(workspace_id, kept_docs, kept_metas)

@@ -1,10 +1,10 @@
 import json
 from collections import Counter
 
-import chat_store
 import ollama
+import workspace_store
 from config import settings
-from db import collection, reset_collection
+from db import clear_collection, drop_collection, get_collection
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -25,12 +25,12 @@ app.add_middleware(
 )
 
 
-class ChatCreate(BaseModel):
-    title: str | None = None
+class WorkspaceCreate(BaseModel):
+    name: str
 
 
-class ChatRename(BaseModel):
-    title: str
+class WorkspaceRename(BaseModel):
+    name: str
 
 
 def _build_sources(docs: list[str], metas: list[dict]) -> list[dict]:
@@ -53,53 +53,66 @@ def _build_chat_messages(history: list[dict], augmented_user: str) -> list[dict]
     ]
 
 
-@app.post("/chats")
-def create_chat(body: ChatCreate):
-    title = (body.title or "New chat").strip() or "New chat"
-    return chat_store.create_chat(title)
+def _require_workspace(workspace_id: str) -> dict:
+    ws = workspace_store.get_workspace(workspace_id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="workspace not found")
+    return ws
 
 
-@app.get("/chats")
-def list_chats():
-    return chat_store.list_chats()
+@app.post("/workspaces")
+def create_workspace(body: WorkspaceCreate):
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name cannot be empty")
+    return workspace_store.create_workspace(name)
 
 
-@app.patch("/chats/{chat_id}")
-def rename_chat(chat_id: int, body: ChatRename):
-    title = body.title.strip()
-    if not title:
-        raise HTTPException(status_code=400, detail="title cannot be empty")
-    chat = chat_store.rename_chat(chat_id, title)
-    if not chat:
-        raise HTTPException(status_code=404, detail="chat not found")
-    return chat
+@app.get("/workspaces")
+def list_workspaces():
+    return workspace_store.list_workspaces()
 
 
-@app.delete("/chats/{chat_id}")
-def delete_chat(chat_id: int):
-    if not chat_store.delete_chat(chat_id):
-        raise HTTPException(status_code=404, detail="chat not found")
+@app.get("/workspaces/{workspace_id}")
+def get_workspace(workspace_id: str):
+    return _require_workspace(workspace_id)
+
+
+@app.patch("/workspaces/{workspace_id}")
+def rename_workspace(workspace_id: str, body: WorkspaceRename):
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name cannot be empty")
+    ws = workspace_store.rename_workspace(workspace_id, name)
+    if not ws:
+        raise HTTPException(status_code=404, detail="workspace not found")
+    return ws
+
+
+@app.delete("/workspaces/{workspace_id}")
+def delete_workspace(workspace_id: str):
+    if not workspace_store.delete_workspace(workspace_id):
+        raise HTTPException(status_code=404, detail="workspace not found")
+    drop_collection(workspace_id)
     return {"deleted": True}
 
 
-@app.get("/chats/{chat_id}/messages")
-def list_chat_messages(chat_id: int):
-    if not chat_store.get_chat(chat_id):
-        raise HTTPException(status_code=404, detail="chat not found")
-    return chat_store.list_messages(chat_id)
+@app.get("/workspaces/{workspace_id}/messages")
+def list_workspace_messages(workspace_id: str):
+    _require_workspace(workspace_id)
+    return workspace_store.list_messages(workspace_id)
 
 
-@app.get("/ask/{chat_id}")
-def ask(chat_id: int, question: str):
-    if not chat_store.get_chat(chat_id):
-        raise HTTPException(status_code=404, detail="chat not found")
+@app.get("/ask/{workspace_id}")
+def ask(workspace_id: str, question: str):
+    _require_workspace(workspace_id)
 
-    history = chat_store.recent_messages_for_context(
-        chat_id, settings.chat_history_messages
+    history = workspace_store.recent_messages_for_context(
+        workspace_id, settings.context_history_messages
     )
-    chat_store.add_message(chat_id, "user", question)
+    workspace_store.add_message(workspace_id, "user", question)
 
-    docs, metas = retrieve(question)
+    docs, metas = retrieve(workspace_id, question)
     context = "\n\n".join(docs)
     augmented_user = CONTEXT_TEMPLATE.format(context=context, question=question)
 
@@ -109,7 +122,9 @@ def ask(chat_id: int, question: str):
     )
     answer = response["message"]["content"]
     sources = _build_sources(docs, metas)
-    saved = chat_store.add_message(chat_id, "assistant", answer, sources=sources)
+    saved = workspace_store.add_message(
+        workspace_id, "assistant", answer, sources=sources
+    )
 
     return {
         "question": question,
@@ -119,17 +134,16 @@ def ask(chat_id: int, question: str):
     }
 
 
-@app.get("/ask/{chat_id}/stream")
-def ask_stream(chat_id: int, question: str):
-    if not chat_store.get_chat(chat_id):
-        raise HTTPException(status_code=404, detail="chat not found")
+@app.get("/ask/{workspace_id}/stream")
+def ask_stream(workspace_id: str, question: str):
+    _require_workspace(workspace_id)
 
-    history = chat_store.recent_messages_for_context(
-        chat_id, settings.chat_history_messages
+    history = workspace_store.recent_messages_for_context(
+        workspace_id, settings.context_history_messages
     )
-    chat_store.add_message(chat_id, "user", question)
+    workspace_store.add_message(workspace_id, "user", question)
 
-    docs, metas = retrieve(question)
+    docs, metas = retrieve(workspace_id, question)
     context = "\n\n".join(docs)
     augmented_user = CONTEXT_TEMPLATE.format(context=context, question=question)
     sources = _build_sources(docs, metas)
@@ -147,16 +161,17 @@ def ask_stream(chat_id: int, question: str):
                 full_text += piece
                 yield json.dumps({"type": "token", "text": piece}) + "\n"
         finally:
-            saved = chat_store.add_message(
-                chat_id, "assistant", full_text, sources=sources
+            saved = workspace_store.add_message(
+                workspace_id, "assistant", full_text, sources=sources
             )
             yield json.dumps({"type": "done", "message_id": saved["id"]}) + "\n"
 
     return StreamingResponse(stream(), media_type="application/x-ndjson")
 
 
-@app.post("/documents")
-async def upload_document(file: UploadFile):
+@app.post("/workspaces/{workspace_id}/documents")
+async def upload_document(workspace_id: str, file: UploadFile):
+    _require_workspace(workspace_id)
     try:
         parser = get_parser(file.filename)
     except ValueError as e:
@@ -167,7 +182,7 @@ async def upload_document(file: UploadFile):
     if not chunks:
         raise HTTPException(status_code=400, detail="No content after parsing")
 
-    collection.add(
+    get_collection(workspace_id).add(
         ids=[f"{file.filename}::chunk{i}" for i in range(len(chunks))],
         documents=[c["text"] for c in chunks],
         metadatas=[
@@ -183,24 +198,28 @@ async def upload_document(file: UploadFile):
     return {"filename": file.filename, "chunks_added": len(chunks)}
 
 
-@app.get("/documents")
-def list_documents():
-    data = collection.get()
+@app.get("/workspaces/{workspace_id}/documents")
+def list_documents(workspace_id: str):
+    _require_workspace(workspace_id)
+    data = get_collection(workspace_id).get()
     counts = Counter(m["source"] for m in data["metadatas"])
     return [{"filename": name, "chunks_count": n} for name, n in sorted(counts.items())]
 
 
-@app.delete("/documents")
-def delete_all_documents():
-    deleted = reset_collection()
+@app.delete("/workspaces/{workspace_id}/documents")
+def delete_all_documents(workspace_id: str):
+    _require_workspace(workspace_id)
+    deleted = clear_collection(workspace_id)
     return {"deleted_chunks": deleted}
 
 
-@app.delete("/documents/{filename}")
-def delete_document(filename: str):
-    data = collection.get(where={"source": filename})
+@app.delete("/workspaces/{workspace_id}/documents/{filename}")
+def delete_document(workspace_id: str, filename: str):
+    _require_workspace(workspace_id)
+    col = get_collection(workspace_id)
+    data = col.get(where={"source": filename})
     ids = data["ids"]
     if not ids:
         raise HTTPException(status_code=404, detail="No such document")
-    collection.delete(ids=ids)
+    col.delete(ids=ids)
     return {"deleted_chunks": len(ids)}

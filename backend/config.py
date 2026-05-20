@@ -21,10 +21,9 @@ class Settings(BaseSettings):
     ollama_embedding_model: str = "nomic-embed-text"
 
     chroma_db_path: str = "./chroma_db"
-    chroma_collection_name: str = "personal_profile"
 
-    chat_db_path: str = "./chat.db"
-    chat_history_messages: int = 8
+    workspace_db_path: str = "./workspace.db"
+    context_history_messages: int = 8
 
     @field_validator("cors_allow_origins", mode="before")
     @classmethod

@@ -21,9 +21,9 @@ dist/
 chroma_db/
 backend/chroma_db/
 
-# SQLite chat store
-backend/chat.db
-backend/chat.db-*
+# SQLite workspace store
+backend/workspace.db
+backend/workspace.db-*
 
 # Env / secrets
 .env

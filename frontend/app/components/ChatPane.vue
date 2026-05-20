@@ -1,45 +1,64 @@
 <script setup lang="ts">
-import { streamAsk, type Citation } from '~/services/chat'
+import {
+  listMessages as apiListMessages,
+  streamAsk,
+  type Citation,
+  type StoredMessage,
+} from '~/services/chat'
 
-const {
-  chats,
-  activeChatId,
-  messages,
-  loadingMessages,
-  init,
-  createChat,
-  renameChat,
-  appendLocal,
-  appendAssistantToken,
-  setAssistantSources,
-  pushInputHistory,
-  getInputHistory,
-  bumpChatToTop,
-  DEFAULT_TITLE,
-} = useChats()
+const props = defineProps<{ workspaceId: string; workspaceName: string }>()
 
+interface UIMessage {
+  role: 'user' | 'assistant'
+  text: string
+  sources?: Citation[]
+}
+
+const messages = ref<UIMessage[]>([])
+const loadingMessages = ref(false)
 const input = ref('')
 const pending = ref(false)
 const error = ref<string | null>(null)
 const scrollRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 
+const inputHistory = ref<string[]>([])
 const historyIdx = ref(-1)
 const draft = ref('')
 
-const activeChat = computed(() =>
-  chats.value.find((c) => c.id === activeChatId.value) ?? null,
-)
+function toUI(m: StoredMessage): UIMessage {
+  return {
+    role: m.role,
+    text: m.content,
+    sources: m.sources ?? undefined,
+  }
+}
+
+async function hydrate() {
+  loadingMessages.value = true
+  try {
+    const rows = await apiListMessages(props.workspaceId)
+    messages.value = rows.map(toUI)
+  } finally {
+    loadingMessages.value = false
+    scrollToBottom()
+  }
+}
 
 onMounted(() => {
-  void init().then(() => scrollToBottom())
+  void hydrate()
 })
 
-watch(activeChatId, () => {
-  historyIdx.value = -1
-  draft.value = ''
-  scrollToBottom()
-})
+watch(
+  () => props.workspaceId,
+  () => {
+    messages.value = []
+    inputHistory.value = []
+    historyIdx.value = -1
+    draft.value = ''
+    void hydrate()
+  },
+)
 
 function scrollToBottom() {
   nextTick(() => {
@@ -55,8 +74,14 @@ function moveCursorToEnd() {
   })
 }
 
+function pushInputHistory(text: string) {
+  if (inputHistory.value[inputHistory.value.length - 1] !== text) {
+    inputHistory.value.push(text)
+  }
+}
+
 function onKeyDown(e: KeyboardEvent) {
-  const history = getInputHistory()
+  const history = inputHistory.value
   if (e.key === 'ArrowUp') {
     if (!history.length) return
     e.preventDefault()
@@ -85,7 +110,7 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 function onInput() {
-  const history = getInputHistory()
+  const history = inputHistory.value
   if (
     historyIdx.value !== -1 &&
     input.value !== history[historyIdx.value]
@@ -97,19 +122,23 @@ function onInput() {
 const SOURCE_FIRST_DELAY_MS = 700
 const SOURCE_REVEAL_MS = 260
 
-async function ask(question: string) {
-  if (activeChatId.value === null) {
-    error.value = 'Create or select a chat first.'
-    return
-  }
-  const chatId = activeChatId.value
+function appendAssistantToken(token: string) {
+  const last = messages.value[messages.value.length - 1]
+  if (last && last.role === 'assistant') last.text += token
+}
 
+function setAssistantSources(sources: Citation[]) {
+  const last = messages.value[messages.value.length - 1]
+  if (last && last.role === 'assistant') last.sources = sources
+}
+
+async function ask(question: string) {
   pushInputHistory(question)
   historyIdx.value = -1
   draft.value = ''
 
-  appendLocal({ role: 'user', text: question })
-  appendLocal({ role: 'assistant', text: '' })
+  messages.value.push({ role: 'user', text: question })
+  messages.value.push({ role: 'assistant', text: '' })
   error.value = null
   pending.value = true
   scrollToBottom()
@@ -146,7 +175,7 @@ async function ask(question: string) {
 
   try {
     await streamAsk(
-      chatId,
+      props.workspaceId,
       question,
       (chunk) => {
         const wasEmpty = !last.text
@@ -159,13 +188,6 @@ async function ask(question: string) {
         if (last.text) startReveal()
       },
     )
-
-    bumpChatToTop(chatId)
-    const chat = chats.value.find((c) => c.id === chatId)
-    if (chat && chat.title === DEFAULT_TITLE) {
-      const title = question.trim().slice(0, 40)
-      if (title) void renameChat(chatId, title)
-    }
   } catch (e) {
     error.value = (e as Error).message
     last.text = `[error] ${error.value}`
@@ -178,20 +200,12 @@ async function ask(question: string) {
 async function onSubmit() {
   const question = input.value.trim()
   if (!question || pending.value) return
-  if (activeChatId.value === null) {
-    try {
-      await createChat()
-    } catch (e) {
-      error.value = (e as Error).message
-      return
-    }
-  }
   input.value = ''
   await ask(question)
 }
 
 function onReask(text: string) {
-  if (pending.value || activeChatId.value === null) return
+  if (pending.value) return
   void ask(text)
 }
 </script>
@@ -200,23 +214,12 @@ function onReask(text: string) {
   <div class="flex h-full flex-col">
     <header class="border-b border-slate-200 p-4">
       <h2 class="truncate text-sm font-semibold text-slate-700">
-        {{ activeChat ? activeChat.title : 'Chat' }}
+        {{ workspaceName || 'Chat' }}
       </h2>
     </header>
 
     <div ref="scrollRef" class="flex-1 space-y-3 overflow-y-auto p-4">
-      <p
-        v-if="activeChatId === null"
-        class="text-sm text-slate-400"
-      >
-        Select or create a chat from the sidebar to begin.
-      </p>
-      <p
-        v-else-if="loadingMessages"
-        class="text-sm text-slate-400"
-      >
-        Loading…
-      </p>
+      <p v-if="loadingMessages" class="text-sm text-slate-400">Loading…</p>
       <p
         v-else-if="!messages.length"
         class="text-sm text-slate-400"
@@ -241,9 +244,7 @@ function onReask(text: string) {
         ref="inputRef"
         v-model="input"
         type="text"
-        :placeholder="
-          activeChatId === null ? 'Create a chat first…' : 'Type a message…'
-        "
+        placeholder="Type a message…"
         class="flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none disabled:bg-slate-50"
         :disabled="pending"
         @keydown="onKeyDown"

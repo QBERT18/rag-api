@@ -7,6 +7,8 @@ import {
   type Document,
 } from '~/services/documents'
 
+const props = defineProps<{ workspaceId: string }>()
+
 type PendingState = 'queued' | 'uploading' | 'error'
 
 interface PendingUpload {
@@ -28,7 +30,7 @@ const queue: number[] = []
 
 async function refresh() {
   try {
-    docs.value = await listDocuments()
+    docs.value = await listDocuments(props.workspaceId)
   } catch (e) {
     error.value = (e as Error).message
   }
@@ -56,7 +58,7 @@ async function drain() {
       row.state = 'uploading'
       row.error = undefined
       try {
-        await uploadDocument(row.file)
+        await uploadDocument(props.workspaceId, row.file)
         pending.value = pending.value.filter((p) => p.id !== id)
         await refresh()
       } catch (e) {
@@ -96,7 +98,7 @@ function dismiss(id: number) {
 
 async function onDelete(filename: string) {
   try {
-    await deleteDocument(filename)
+    await deleteDocument(props.workspaceId, filename)
     await refresh()
   } catch (e) {
     error.value = (e as Error).message
@@ -106,7 +108,7 @@ async function onDelete(filename: string) {
 async function onClearAll() {
   if (!docs.value.length) return
   try {
-    await clearAll()
+    await clearAll(props.workspaceId)
     await refresh()
   } catch (e) {
     error.value = (e as Error).message
@@ -114,6 +116,12 @@ async function onClearAll() {
 }
 
 onMounted(refresh)
+watch(() => props.workspaceId, () => {
+  docs.value = []
+  pending.value = []
+  queue.length = 0
+  void refresh()
+})
 </script>
 
 <template>
