@@ -1,0 +1,73 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rag-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: rag-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-gemma3:4b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        echo "Pulling chat model: $$OLLAMA_CHAT_MODEL"
+        ollama pull "$$OLLAMA_CHAT_MODEL"
+        echo "Pulling embedding model: $$OLLAMA_EMBEDDING_MODEL"
+        ollama pull "$$OLLAMA_EMBEDDING_MODEL"
+        echo "Models ready."
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: rag-backend
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-gemma3:4b}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      CHROMA_DB_PATH: /data/chroma_db
+      WORKSPACE_DB_PATH: /data/workspace.db
+      CORS_ALLOW_ORIGINS: http://localhost:3000
+    volumes:
+      - backend_data:/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: rag-frontend
+    depends_on:
+      - backend
+    environment:
+      NUXT_HOST: 0.0.0.0
+      NUXT_PORT: "3000"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  backend_data:
