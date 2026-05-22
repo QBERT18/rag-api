@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { Citation } from '~/services/chat'
 
+interface SourceGroup {
+  filename: string
+  chunks: Citation[]
+}
+
 const MAX_VISIBLE_SOURCES = 2
 
 const props = defineProps<{
@@ -16,11 +21,28 @@ const emit = defineEmits<{
 const open = ref<number | null>(null)
 const showMore = ref(false)
 
-const visibleSources = computed(() =>
-  (props.sources ?? []).slice(0, MAX_VISIBLE_SOURCES),
+const renderedHtml = computed(() =>
+  props.role === 'assistant' && props.text ? renderMarkdown(props.text) : '',
 )
-const hiddenSources = computed(() =>
-  (props.sources ?? []).slice(MAX_VISIBLE_SOURCES),
+
+const groupedSources = computed<SourceGroup[]>(() => {
+  const buckets = new Map<string, SourceGroup>()
+  for (const c of props.sources ?? []) {
+    const existing = buckets.get(c.filename)
+    if (existing) {
+      existing.chunks.push(c)
+    } else {
+      buckets.set(c.filename, { filename: c.filename, chunks: [c] })
+    }
+  }
+  return [...buckets.values()]
+})
+
+const visibleGroups = computed(() =>
+  groupedSources.value.slice(0, MAX_VISIBLE_SOURCES),
+)
+const hiddenGroups = computed(() =>
+  groupedSources.value.slice(MAX_VISIBLE_SOURCES),
 )
 
 function toggle(i: number) {
@@ -38,10 +60,13 @@ function toggleMore() {
   }
 }
 
-function chipTitle(s: Citation) {
-  return s.line_start
-    ? `${s.filename} · lines ${s.line_start}–${s.line_end}`
-    : s.filename
+function chunkRange(c: Citation) {
+  return c.line_start ? `lines ${c.line_start}–${c.line_end}` : ''
+}
+
+function groupTitle(g: SourceGroup) {
+  const n = g.chunks.length
+  return n > 1 ? `${g.filename} · ${n} chunks` : g.filename
 }
 </script>
 
@@ -51,14 +76,21 @@ function chipTitle(s: Citation) {
     :class="role === 'user' ? 'items-end' : 'items-start'"
   >
     <div
-      class="max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words"
+      class="max-w-[80%] rounded-lg px-3 py-2 text-sm break-words"
       :class="
         role === 'user'
-          ? 'bg-slate-900 text-white'
-          : 'bg-slate-100 text-slate-900'
+          ? 'bg-accent text-accent-fg whitespace-pre-wrap'
+          : 'border border-border bg-surface text-text'
       "
     >
-      <span v-if="text">{{ text }}</span>
+      <template v-if="text">
+        <div
+          v-if="role === 'assistant'"
+          class="markdown"
+          v-html="renderedHtml"
+        />
+        <span v-else>{{ text }}</span>
+      </template>
       <span v-else class="typing inline-flex items-center gap-1" aria-label="Loading">
         <span class="typing-dot" />
         <span class="typing-dot" />
@@ -69,7 +101,7 @@ function chipTitle(s: Citation) {
     <button
       v-if="role === 'user' && text"
       type="button"
-      class="mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+      class="mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted hover:bg-surface-2 hover:text-text"
       title="Ask this again"
       @click="emit('reask', text)"
     >
@@ -90,7 +122,7 @@ function chipTitle(s: Citation) {
     </button>
 
     <div
-      v-if="role === 'assistant' && sources?.length"
+      v-if="role === 'assistant' && groupedSources.length"
       class="mt-1 w-full max-w-[80%]"
     >
       <TransitionGroup
@@ -99,60 +131,84 @@ function chipTitle(s: Citation) {
         class="flex items-center gap-1"
       >
         <button
-          v-for="(s, i) in visibleSources"
-          :key="`v-${i}`"
+          v-for="(g, i) in visibleGroups"
+          :key="`v-${g.filename}`"
           type="button"
-          class="max-w-[12rem] truncate rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
-          :title="chipTitle(s)"
+          class="inline-flex max-w-[14rem] items-center gap-1 truncate rounded-md border border-border bg-surface px-2 py-1 text-xs text-muted hover:bg-surface-2 hover:text-text"
+          :class="open === i ? 'bg-surface-2 text-text' : ''"
+          :title="groupTitle(g)"
           @click="toggle(i)"
         >
-          📄 {{ s.filename }}
+          <Icon name="lucide:file-text" class="h-3 w-3 shrink-0" />
+          <span class="truncate">{{ g.filename }}</span>
+          <span
+            v-if="g.chunks.length > 1"
+            class="rounded bg-surface-2 px-1 text-[0.65rem] text-muted"
+          >
+            {{ g.chunks.length }}
+          </span>
         </button>
         <button
-          v-if="hiddenSources.length"
+          v-if="hiddenGroups.length"
           key="more"
           type="button"
-          class="rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50"
+          class="rounded-md border border-border bg-surface px-2 py-1 text-xs hover:bg-surface-2"
           :class="
-            showMore ? 'bg-slate-100 text-slate-700' : 'text-slate-500'
+            showMore ? 'bg-surface-2 text-text' : 'text-muted'
           "
           :title="
             showMore
               ? 'Hide extra sources'
-              : `Show ${hiddenSources.length} more`
+              : `Show ${hiddenGroups.length} more`
           "
           :aria-expanded="showMore"
           @click="toggleMore"
         >
-          {{ showMore ? '−' : '+' }}{{ hiddenSources.length }}
+          {{ showMore ? '−' : '+' }}{{ hiddenGroups.length }}
         </button>
       </TransitionGroup>
 
       <Transition name="more">
         <div
-          v-if="showMore && hiddenSources.length"
-          class="mt-1 space-y-0.5 rounded-md border border-slate-200 bg-white p-1"
+          v-if="showMore && hiddenGroups.length"
+          class="mt-1 space-y-0.5 rounded-md border border-border bg-surface p-1"
         >
           <button
-            v-for="(s, k) in hiddenSources"
-            :key="`h-${k}`"
+            v-for="(g, k) in hiddenGroups"
+            :key="`h-${g.filename}`"
             type="button"
-            class="block w-full truncate rounded px-2 py-1 text-left text-xs text-slate-600 hover:bg-slate-50"
-            :title="chipTitle(s)"
+            class="flex w-full items-center gap-1 rounded px-2 py-1 text-left text-xs text-muted hover:bg-surface-2 hover:text-text"
+            :class="open === MAX_VISIBLE_SOURCES + k ? 'bg-surface-2 text-text' : ''"
+            :title="groupTitle(g)"
             @click="toggle(MAX_VISIBLE_SOURCES + k)"
           >
-            📄 {{ s.filename }}
-            <span v-if="s.line_start" class="text-slate-400">
-              · lines {{ s.line_start }}–{{ s.line_end }}
+            <Icon name="lucide:file-text" class="h-3 w-3 shrink-0" />
+            <span class="truncate">{{ g.filename }}</span>
+            <span
+              v-if="g.chunks.length > 1"
+              class="ml-auto rounded bg-surface-2 px-1 text-[0.65rem] text-muted"
+            >
+              {{ g.chunks.length }}
             </span>
           </button>
         </div>
       </Transition>
 
-      <pre
-        v-if="open !== null && sources?.[open]"
-        class="mt-1 max-h-40 overflow-auto rounded-md bg-slate-50 p-2 text-xs whitespace-pre-wrap text-slate-700"
-      >{{ sources?.[open]?.excerpt }}</pre>
+      <div
+        v-if="open !== null && groupedSources[open]"
+        class="mt-1 space-y-2 rounded-md border border-border bg-surface-2 p-2 text-xs text-text"
+      >
+        <div
+          v-for="(c, ci) in groupedSources[open].chunks"
+          :key="`c-${ci}`"
+          class="space-y-1"
+        >
+          <p v-if="chunkRange(c)" class="text-[0.7rem] text-muted">
+            {{ chunkRange(c) }}
+          </p>
+          <pre class="max-h-40 overflow-auto whitespace-pre-wrap">{{ c.excerpt }}</pre>
+        </div>
+      </div>
     </div>
   </div>
 </template>

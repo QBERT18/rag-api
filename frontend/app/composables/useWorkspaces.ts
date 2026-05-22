@@ -24,7 +24,10 @@ async function createWorkspace(name: string): Promise<Workspace> {
 async function renameWorkspace(id: string, name: string): Promise<Workspace> {
   const updated = await apiRename(id, name)
   const i = workspaces.value.findIndex((w) => w.id === id)
-  if (i >= 0) workspaces.value[i] = updated
+  if (i >= 0) {
+    const prev = workspaces.value[i]
+    workspaces.value[i] = { ...updated, doc_count: prev?.doc_count ?? updated.doc_count }
+  }
   return updated
 }
 

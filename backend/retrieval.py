@@ -1,15 +1,26 @@
 import math
 import re
+from dataclasses import dataclass
 
 from db import get_collection
 
 
 TOP_K = 6
 FETCH_K = 100
-MAX_PER_SOURCE = 4
+MAX_PER_SOURCE = 3
 KW_WEIGHT = 1.0
 NEIGHBOR_RADIUS = 1
 MAX_NEIGHBORS = 4
+MIN_ABS_SCORE = 0.1
+REL_THRESHOLD = 0.25
+
+
+@dataclass
+class Retrieval:
+    context_docs: list[str]
+    context_metas: list[dict]
+    citation_docs: list[str]
+    citation_metas: list[dict]
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 _SPLIT_RE = re.compile(r",\s*and\s+|\s+and\s+|;\s+", re.IGNORECASE)
@@ -120,7 +131,7 @@ def _expand_with_neighbors(
     return kept_docs, kept_metas
 
 
-def retrieve(workspace_id: str, question: str) -> tuple[list[str], list[dict]]:
+def retrieve(workspace_id: str, question: str) -> Retrieval:
     collection = get_collection(workspace_id)
     merged: dict[str, tuple[float, str, dict]] = {}
     for sub in _split_query(question):
@@ -136,17 +147,32 @@ def retrieve(workspace_id: str, question: str) -> tuple[list[str], list[dict]]:
 
     ranked = sorted(merged.values(), key=lambda x: x[0], reverse=True)
 
-    kept_docs: list[str] = []
-    kept_metas: list[dict] = []
+    kept: list[tuple[float, str, dict]] = []
     seen: dict[str, int] = {}
-    for _, d, m in ranked:
+    for score, d, m in ranked:
         src = m.get("source", "?")
         if seen.get(src, 0) >= MAX_PER_SOURCE:
             continue
-        kept_docs.append(d)
-        kept_metas.append(m)
+        kept.append((score, d, m))
         seen[src] = seen.get(src, 0) + 1
-        if len(kept_docs) >= TOP_K:
+        if len(kept) >= TOP_K:
             break
 
-    return _expand_with_neighbors(workspace_id, kept_docs, kept_metas)
+    kept_docs = [d for _, d, _ in kept]
+    kept_metas = [m for _, _, m in kept]
+
+    citation_docs: list[str] = []
+    citation_metas: list[dict] = []
+    if kept:
+        best = kept[0][0]
+        if best >= MIN_ABS_SCORE:
+            cutoff = best - REL_THRESHOLD
+            for score, d, m in kept:
+                if score >= MIN_ABS_SCORE and score >= cutoff:
+                    citation_docs.append(d)
+                    citation_metas.append(m)
+
+    context_docs, context_metas = _expand_with_neighbors(
+        workspace_id, kept_docs, kept_metas
+    )
+    return Retrieval(context_docs, context_metas, citation_docs, citation_metas)

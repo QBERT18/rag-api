@@ -21,6 +21,7 @@ const pending = ref(false)
 const error = ref<string | null>(null)
 const scrollRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
+let abortController: AbortController | null = null
 
 const inputHistory = ref<string[]>([])
 const historyIdx = ref(-1)
@@ -141,6 +142,7 @@ async function ask(question: string) {
   messages.value.push({ role: 'assistant', text: '' })
   error.value = null
   pending.value = true
+  abortController = new AbortController()
   scrollToBottom()
 
   let pendingSources: Citation[] | null = null
@@ -187,14 +189,33 @@ async function ask(question: string) {
         pendingSources = items
         if (last.text) startReveal()
       },
+      undefined,
+      abortController.signal,
     )
   } catch (e) {
-    error.value = (e as Error).message
-    last.text = `[error] ${error.value}`
+    const err = e as Error
+    const aborted =
+      err.name === 'AbortError' ||
+      (err as unknown as { code?: number }).code === 20
+    if (aborted) {
+      if (!last.text) last.text = '[stopped]'
+    } else {
+      error.value = err.message
+      last.text = `[error] ${error.value}`
+    }
     startReveal()
   } finally {
     pending.value = false
+    abortController = null
+    if (revealTimer) {
+      clearInterval(revealTimer)
+      revealTimer = null
+    }
   }
+}
+
+function onStop() {
+  abortController?.abort()
 }
 
 async function onSubmit() {
@@ -212,17 +233,17 @@ function onReask(text: string) {
 
 <template>
   <div class="flex h-full flex-col">
-    <header class="border-b border-slate-200 p-4">
-      <h2 class="truncate text-sm font-semibold text-slate-700">
+    <header class="border-b border-border p-4">
+      <h2 class="truncate text-sm font-semibold text-text">
         {{ workspaceName || 'Chat' }}
       </h2>
     </header>
 
     <div ref="scrollRef" class="flex-1 space-y-3 overflow-y-auto p-4">
-      <p v-if="loadingMessages" class="text-sm text-slate-400">Loading…</p>
+      <p v-if="loadingMessages" class="text-sm text-muted">Loading…</p>
       <p
         v-else-if="!messages.length"
-        class="text-sm text-slate-400"
+        class="text-sm text-muted"
       >
         Ask a question about your uploaded documents.
       </p>
@@ -237,7 +258,7 @@ function onReask(text: string) {
     </div>
 
     <form
-      class="flex gap-2 border-t border-slate-200 p-3"
+      class="flex gap-2 border-t border-border p-3"
       @submit.prevent="onSubmit"
     >
       <input
@@ -245,21 +266,36 @@ function onReask(text: string) {
         v-model="input"
         type="text"
         placeholder="Type a message…"
-        class="flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none disabled:bg-slate-50"
+        class="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-muted focus:border-accent focus:outline-none disabled:opacity-60"
         :disabled="pending"
         @keydown="onKeyDown"
         @input="onInput"
       />
       <button
+        v-if="!pending"
         type="submit"
-        class="rounded-md bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800 disabled:bg-slate-400"
-        :disabled="pending || !input.trim()"
+        class="inline-flex items-center gap-1 rounded-md bg-accent px-4 py-2 text-sm text-accent-fg transition hover:opacity-90 disabled:opacity-50"
+        :disabled="!input.trim()"
       >
-        {{ pending ? '…' : 'Send' }}
+        <Icon name="lucide:arrow-up" class="h-4 w-4" />
+        Send
+      </button>
+      <button
+        v-else
+        type="button"
+        class="inline-flex items-center gap-1 rounded-md bg-danger px-4 py-2 text-sm text-white transition hover:opacity-90"
+        title="Stop generation"
+        @click="onStop"
+      >
+        <Icon name="lucide:square" class="h-4 w-4" />
+        Stop
       </button>
     </form>
 
-    <p v-if="error" class="border-t border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700">
+    <p
+      v-if="error"
+      class="border-t border-danger/30 bg-[var(--color-danger-soft)] px-4 py-2 text-xs text-danger"
+    >
       {{ error }}
     </p>
   </div>

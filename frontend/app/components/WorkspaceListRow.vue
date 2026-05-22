@@ -74,7 +74,7 @@ function onDelete() {
   }
 }
 
-function onCardClick() {
+function onClick() {
   if (editing.value) return
   if (menuOpen.value) {
     menuOpen.value = false
@@ -86,67 +86,62 @@ function onCardClick() {
 
 <template>
   <div
-    class="group relative flex aspect-[4/3] cursor-pointer flex-col justify-between rounded-xl p-4 shadow-sm ring-1 ring-border transition hover:shadow-md hover:ring-accent/40"
-    :style="{
-      backgroundColor: `var(--color-tile-${tile})`,
-      color: `var(--color-tile-fg-${tile})`,
-    }"
-    @click="onCardClick"
+    class="group relative flex cursor-pointer items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5 transition hover:bg-surface-2"
+    @click="onClick"
   >
-    <div class="flex items-start justify-between">
-      <span
-        class="flex h-9 w-9 items-center justify-center rounded-lg bg-black/10 dark:bg-white/10"
-      >
-        <Icon name="lucide:book-open" class="h-5 w-5" />
-      </span>
-      <button
-        v-if="!editing"
-        ref="menuBtnRef"
-        type="button"
-        class="rounded p-1 opacity-0 hover:bg-black/10 dark:hover:bg-white/10 group-hover:opacity-100"
-        :class="{ 'opacity-100': menuOpen }"
-        title="More"
-        @click.stop="menuOpen = !menuOpen"
-      >
-        <Icon name="lucide:more-horizontal" class="h-4 w-4" />
-      </button>
-    </div>
+    <span
+      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+      :style="{
+        backgroundColor: `var(--color-tile-${tile})`,
+        color: `var(--color-tile-fg-${tile})`,
+      }"
+    >
+      <Icon name="lucide:book-open" class="h-4 w-4" />
+    </span>
 
-    <div class="min-w-0">
+    <div class="min-w-0 flex-1">
       <input
         v-if="editing"
         ref="inputRef"
         v-model="draft"
         type="text"
-        class="w-full rounded border border-current/30 bg-bg/80 px-2 py-1 text-base font-medium text-text focus:outline-none"
+        class="w-full rounded border border-border bg-bg px-2 py-1 text-sm text-text focus:border-accent focus:outline-none"
         @click.stop
         @keydown.enter.prevent="commitRename"
         @keydown.escape.prevent="cancelRename"
         @blur="commitRename"
       />
-      <h3
-        v-else
-        class="truncate text-base font-semibold"
-        :title="workspace.name"
-      >
+      <p v-else class="truncate text-sm font-medium text-text" :title="workspace.name">
         {{ workspace.name }}
-      </h3>
-      <p class="mt-1 text-xs opacity-80">
+      </p>
+      <p class="text-xs text-muted">
         <span>{{ updated }}</span>
         <span class="px-1.5">·</span>
         <span>{{ docCount }} {{ docCount === 1 ? 'source' : 'sources' }}</span>
       </p>
     </div>
 
+    <button
+      v-if="!editing"
+      ref="menuBtnRef"
+      type="button"
+      class="rounded p-1 text-muted opacity-0 hover:bg-surface-2 hover:text-text group-hover:opacity-100"
+      :class="{ 'opacity-100': menuOpen }"
+      title="More"
+      @click.stop="menuOpen = !menuOpen"
+    >
+      <Icon name="lucide:more-horizontal" class="h-4 w-4" />
+    </button>
+
     <div
       v-if="menuOpen && !editing"
       ref="menuRef"
-      class="absolute right-3 top-12 z-10 w-32 rounded-md border border-border bg-bg py-1 text-xs text-text shadow-md"
+      class="absolute right-2 top-11 z-10 w-32 rounded-md border border-border bg-bg py-1 text-xs shadow-md"
       @click.stop
     >
       <button
         type="button"
-        class="block w-full px-3 py-1.5 text-left hover:bg-surface-2"
+        class="block w-full px-3 py-1.5 text-left text-text hover:bg-surface-2"
         @click="startRename"
       >
         Rename

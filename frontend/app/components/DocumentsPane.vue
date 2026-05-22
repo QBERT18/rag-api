@@ -23,10 +23,17 @@ const docs = ref<Document[]>([])
 const pending = ref<PendingUpload[]>([])
 const error = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+const query = ref('')
 
 let nextId = 1
 let working = false
 const queue: number[] = []
+
+const filteredDocs = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  if (!q) return docs.value
+  return docs.value.filter((d) => d.filename.toLowerCase().includes(q))
+})
 
 async function refresh() {
   try {
@@ -120,19 +127,20 @@ watch(() => props.workspaceId, () => {
   docs.value = []
   pending.value = []
   queue.length = 0
+  query.value = ''
   void refresh()
 })
 </script>
 
 <template>
   <div class="flex h-full flex-col">
-    <header class="border-b border-slate-200 p-4">
-      <h2 class="text-sm font-semibold text-slate-700">Documents</h2>
+    <header class="border-b border-border p-4">
+      <h2 class="text-sm font-semibold text-text">Documents</h2>
     </header>
 
-    <div class="border-b border-slate-200 p-4">
+    <div class="border-b border-border p-4">
       <label
-        class="block cursor-pointer rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-center text-sm text-slate-600 hover:bg-slate-100"
+        class="block cursor-pointer rounded-md border border-dashed border-border bg-surface-2 px-3 py-4 text-center text-sm text-muted transition hover:border-accent hover:text-text"
       >
         <input
           ref="fileInput"
@@ -142,22 +150,27 @@ watch(() => props.workspaceId, () => {
           class="hidden"
           @change="onPick"
         />
+        <Icon name="lucide:upload" class="mr-1 inline h-4 w-4 align-[-2px]" />
         Click to upload (.txt, .md, .pdf, .docx, .html, .csv, .json)
       </label>
-      <p v-if="error" class="mt-2 text-xs text-red-600">{{ error }}</p>
+      <p v-if="error" class="mt-2 text-xs text-danger">{{ error }}</p>
+    </div>
+
+    <div v-if="docs.length || query" class="border-b border-border p-3">
+      <SearchBox v-model="query" placeholder="Search documents" />
     </div>
 
     <ul class="flex-1 overflow-y-auto">
       <li
         v-for="p in pending"
         :key="`pending-${p.id}`"
-        class="flex items-center justify-between border-b border-slate-100 px-4 py-2 text-sm"
+        class="flex items-center justify-between border-b border-border px-4 py-2 text-sm"
       >
         <div class="min-w-0 flex-1">
-          <p class="truncate text-slate-800">{{ p.name }}</p>
+          <p class="truncate text-text">{{ p.name }}</p>
           <p
             class="text-xs"
-            :class="p.state === 'error' ? 'text-red-600' : 'text-slate-400'"
+            :class="p.state === 'error' ? 'text-danger' : 'text-muted'"
           >
             <span v-if="p.state === 'queued'">Queued…</span>
             <span
@@ -165,7 +178,7 @@ watch(() => props.workspaceId, () => {
               class="inline-flex items-center gap-1"
             >
               <span
-                class="inline-block h-2 w-2 animate-pulse rounded-full bg-slate-500"
+                class="inline-block h-2 w-2 animate-pulse rounded-full bg-accent"
               />
               Uploading…
             </span>
@@ -176,7 +189,7 @@ watch(() => props.workspaceId, () => {
           <button
             v-if="p.state === 'error'"
             type="button"
-            class="rounded px-2 py-1 text-slate-600 hover:bg-slate-100"
+            class="rounded px-2 py-1 text-muted hover:bg-surface-2 hover:text-text"
             @click="retry(p.id)"
           >
             Retry
@@ -184,7 +197,7 @@ watch(() => props.workspaceId, () => {
           <button
             v-if="p.state !== 'uploading'"
             type="button"
-            class="rounded px-2 py-1 text-slate-500 hover:bg-red-50 hover:text-red-600"
+            class="rounded px-2 py-1 text-muted hover:bg-[var(--color-danger-soft)] hover:text-danger"
             @click="dismiss(p.id)"
           >
             Remove
@@ -194,23 +207,32 @@ watch(() => props.workspaceId, () => {
 
       <li
         v-if="!docs.length && !pending.length"
-        class="p-4 text-sm text-slate-400"
+        class="p-4 text-sm text-muted"
       >
         No documents yet.
       </li>
+      <li
+        v-else-if="!filteredDocs.length && query"
+        class="p-4 text-sm text-muted"
+      >
+        No documents match “{{ query }}”.
+      </li>
 
       <li
-        v-for="doc in docs"
+        v-for="doc in filteredDocs"
         :key="`doc-${doc.filename}`"
-        class="flex items-center justify-between border-b border-slate-100 px-4 py-2 text-sm"
+        class="flex items-center justify-between border-b border-border px-4 py-2 text-sm"
       >
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-slate-800">{{ doc.filename }}</p>
-          <p class="text-xs text-slate-400">{{ doc.chunks_count }} chunks</p>
+        <div class="flex min-w-0 flex-1 items-center gap-2">
+          <Icon name="lucide:file-text" class="h-4 w-4 shrink-0 text-muted" />
+          <div class="min-w-0">
+            <p class="truncate text-text">{{ doc.filename }}</p>
+            <p class="text-xs text-muted">{{ doc.chunks_count }} chunks</p>
+          </div>
         </div>
         <button
           type="button"
-          class="ml-2 rounded px-2 py-1 text-xs text-slate-500 hover:bg-red-50 hover:text-red-600"
+          class="ml-2 rounded px-2 py-1 text-xs text-muted hover:bg-[var(--color-danger-soft)] hover:text-danger"
           @click="onDelete(doc.filename)"
         >
           Delete
@@ -218,10 +240,10 @@ watch(() => props.workspaceId, () => {
       </li>
     </ul>
 
-    <footer v-if="docs.length" class="border-t border-slate-200 p-3">
+    <footer v-if="docs.length" class="border-t border-border p-3">
       <button
         type="button"
-        class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+        class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-text"
         @click="onClearAll"
       >
         Clear all

@@ -37,3 +37,9 @@ def clear_collection(workspace_id: str) -> int:
     if ids:
         col.delete(ids=ids)
     return len(ids)
+
+
+def count_sources(workspace_id: str) -> int:
+    col = get_collection(workspace_id)
+    metas = col.get(include=["metadatas"])["metadatas"] or []
+    return len({m.get("source") for m in metas if m.get("source")})

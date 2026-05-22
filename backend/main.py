@@ -4,7 +4,7 @@ from collections import Counter
 import ollama
 import workspace_store
 from config import settings
-from db import clear_collection, drop_collection, get_collection
+from db import clear_collection, count_sources, drop_collection, get_collection
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -70,7 +70,10 @@ def create_workspace(body: WorkspaceCreate):
 
 @app.get("/workspaces")
 def list_workspaces():
-    return workspace_store.list_workspaces()
+    return [
+        {**ws, "doc_count": count_sources(ws["id"])}
+        for ws in workspace_store.list_workspaces()
+    ]
 
 
 @app.get("/workspaces/{workspace_id}")
@@ -112,8 +115,8 @@ def ask(workspace_id: str, question: str):
     )
     workspace_store.add_message(workspace_id, "user", question)
 
-    docs, metas = retrieve(workspace_id, question)
-    context = "\n\n".join(docs)
+    r = retrieve(workspace_id, question)
+    context = "\n\n".join(r.context_docs)
     augmented_user = CONTEXT_TEMPLATE.format(context=context, question=question)
 
     response = _ollama_client.chat(
@@ -121,7 +124,7 @@ def ask(workspace_id: str, question: str):
         messages=_build_chat_messages(history, augmented_user),
     )
     answer = response["message"]["content"]
-    sources = _build_sources(docs, metas)
+    sources = _build_sources(r.citation_docs, r.citation_metas)
     saved = workspace_store.add_message(
         workspace_id, "assistant", answer, sources=sources
     )
@@ -143,10 +146,10 @@ def ask_stream(workspace_id: str, question: str):
     )
     workspace_store.add_message(workspace_id, "user", question)
 
-    docs, metas = retrieve(workspace_id, question)
-    context = "\n\n".join(docs)
+    r = retrieve(workspace_id, question)
+    context = "\n\n".join(r.context_docs)
     augmented_user = CONTEXT_TEMPLATE.format(context=context, question=question)
-    sources = _build_sources(docs, metas)
+    sources = _build_sources(r.citation_docs, r.citation_metas)
 
     def stream():
         full_text = ""
