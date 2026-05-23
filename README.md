@@ -265,6 +265,22 @@ Swagger UI: <http://localhost:8000/docs> while the backend is running.
 
 ---
 
+## Claude Code skills
+
+This repo uses a few [Claude Code](https://claude.com/claude-code) skills,
+pinned in [`skills-lock.json`](skills-lock.json). There's no auto-restore
+command, so after a fresh clone install them manually:
+
+```bash
+npx skills add vercel-labs/agent-skills --skill vercel-react-best-practices
+npx skills add vercel-labs/agent-skills --skill vercel-composition-patterns
+npx skills add vercel-labs/agent-skills --skill vercel-react-native-skills
+npx skills add vercel-labs/next-skills --skill next-best-practices
+npx skills add vercel-labs/next-skills --skill next-cache-components
+```
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE) if present, otherwise treat as MIT.
