@@ -43,4 +43,5 @@ logs/
 .vscode/
 
 # Claude local settings
-.claude/settings.local.json
+.claude/
+.agents/
