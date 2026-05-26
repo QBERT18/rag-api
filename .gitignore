@@ -21,9 +21,9 @@ dist/
 chroma_db/
 backend/chroma_db/
 
-# SQLite workspace store
-backend/workspace.db
-backend/workspace.db-*
+# SQLite DBs (created at runtime)
+backend/*.db
+backend/*.db-*
 
 # Env / secrets
 .env
