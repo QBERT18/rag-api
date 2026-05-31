@@ -14,8 +14,9 @@ function start() {
 }
 
 function commit() {
-  const name = draft.value.trim()
+  if (!creating.value) return
   creating.value = false
+  const name = draft.value.trim()
   if (name) emit('create', name)
 }
 

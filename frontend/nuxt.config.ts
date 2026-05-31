@@ -22,6 +22,7 @@ export default defineNuxtConfig({
     serverBundle: {
       collections: ['lucide'],
     },
+    localApiEndpoint: '/_nuxt_icon',
   },
   vite: {
     plugins: [tailwindcss()],
