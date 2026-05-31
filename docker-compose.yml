@@ -112,4 +112,5 @@ services:
       WATCHTOWER_CLEANUP: "true"          # delete old images after update
       WATCHTOWER_LABEL_ENABLE: "true"     # only watch labeled containers
       WATCHTOWER_POLL_INTERVAL: "120"     # check GHCR every 120s
+      DOCKER_API_VERSION: "1.41"          # match modern daemons (min 1.40+)
     restart: unless-stopped
