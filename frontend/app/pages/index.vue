@@ -46,8 +46,7 @@ const filtered = computed(() => {
 async function onCreate(name: string) {
   error.value = null
   try {
-    const ws = await createWorkspace(name)
-    router.push(`/workspaces/${ws.id}`)
+    await createWorkspace(name)
   } catch (e) {
     error.value = (e as Error).message
   }
