@@ -36,9 +36,12 @@ services:
     restart: "no"
 
   backend:
+    image: ghcr.io/qbert18/rag-api-backend:latest
     build:
       context: ./backend
     container_name: rag-backend
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
     depends_on:
       ollama-init:
         condition: service_completed_successfully
@@ -56,9 +59,12 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: ghcr.io/qbert18/rag-api-frontend:latest
     build:
       context: ./frontend
     container_name: rag-frontend
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
     depends_on:
       - backend
     environment:
@@ -91,4 +97,19 @@ services:
     command: ["http", "caddy:80", "--log=stdout"]
     ports:
       - "4040:4040"   # ngrok inspector — read the public URL here
+    restart: unless-stopped
+
+  # Auto-pulls new backend/frontend images from GHCR and recreates them.
+  # Only the two app containers are watched (label-scoped); ollama/caddy/ngrok
+  # are left alone. Tunnel-profile only, so it never runs in local dev.
+  watchtower:
+    image: containrrr/watchtower
+    container_name: rag-watchtower
+    profiles: ["tunnel"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_CLEANUP: "true"          # delete old images after update
+      WATCHTOWER_LABEL_ENABLE: "true"     # only watch labeled containers
+      WATCHTOWER_POLL_INTERVAL: "120"     # check GHCR every 120s
     restart: unless-stopped

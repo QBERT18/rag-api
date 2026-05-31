@@ -23,8 +23,12 @@ cp .env.example .env
 #    FRONTEND_API_BASE=/api
 nano .env
 
-# 4. Build and start the full stack WITH the public tunnel (detached)
-docker compose --profile tunnel up -d --build
+# 4. Pull the prebuilt images and start the stack WITH the public tunnel.
+#    (Images are built by GitHub Actions and published to GHCR — no local
+#     build needed. Use `up -d --build` instead only if you want to build
+#     from source on this machine.)
+docker compose --profile tunnel pull
+docker compose --profile tunnel up -d
 
 # 5. First boot pulls the Ollama models (~3–4 GB) — watch progress:
 docker compose logs -f ollama-init      # Ctrl-C when it prints "Models ready."
@@ -69,7 +73,7 @@ docker compose --profile tunnel ps             # status
 docker compose --profile tunnel logs -f        # all logs
 docker compose --profile tunnel down           # stop (keeps ./data)
 docker compose --profile tunnel up -d          # start again (no rebuild)
-docker compose --profile tunnel up -d --build  # rebuild after a git pull
+docker compose --profile tunnel pull           # fetch the latest images from GHCR
 ```
 
 Note: the random ngrok URL changes every restart. Re-run step 6 to get the new one.
@@ -79,6 +83,65 @@ Note: the random ngrok URL changes every restart. Re-run step 6 to get the new o
 ```bash
 docker compose up -d --build     # app on http://localhost:3000, no public URL
 ```
+
+## Continuous deployment (CI/CD)
+
+Pushing to `main` builds both Docker images in **GitHub Actions**, publishes
+them to **GHCR**, and the server's **Watchtower** container auto-pulls and
+redeploys them. The build happens in the cloud, so your server never builds
+(important on a small box).
+
+```
+git push main ─► GitHub Actions builds backend + frontend
+              ─► pushes ghcr.io/qbert18/rag-api-{backend,frontend}:latest
+server: Watchtower polls GHCR ─► pulls :latest ─► recreates the 2 containers
+```
+
+### One-time setup (do once)
+
+1. **Land the pipeline** — make sure `.github/workflows/build.yml` and the
+   updated `docker-compose.yml` are on `main`:
+   ```bash
+   git push origin main
+   ```
+2. **Watch the first build** — GitHub repo → **Actions** tab → wait for the
+   `build-and-push` run to go green (~2–4 min).
+3. **Make the two images public** so the server can pull without logging in.
+   GitHub → profile picture → **Your packages**
+   (`https://github.com/QBERT18?tab=packages`). For **each** of
+   `rag-api-backend` and `rag-api-frontend`: open it → **Package settings** →
+   **Danger Zone** → **Change visibility** → **Public** (confirm by typing the
+   name). Optional: **Connect repository** → `rag-api`.
+4. **Start the server in pull mode** (Watchtower comes up with the `tunnel`
+   profile):
+   ```bash
+   cd rag-api
+   git pull
+   docker compose --profile tunnel pull
+   docker compose --profile tunnel up -d
+   docker logs rag-watchtower --tail 20   # confirms it's watching the 2 containers
+   ```
+
+You never build on the server again.
+
+### Daily workflow
+
+1. Code locally, `git push origin main`.
+2. Actions builds + pushes new images (~2–4 min).
+3. Within ~2 min, Watchtower on the server pulls `:latest` and recreates the
+   backend/frontend containers. Nothing to do on the server.
+4. Reload the ngrok URL — your change is live.
+
+### Occasional manual cases
+
+- **Changed `docker-compose.yml`, `Caddyfile`, or `.env`** (not code) —
+  Watchtower won't apply these; on the server run
+  `git pull && docker compose --profile tunnel up -d`.
+- **Roll back a bad deploy** — every build also pushes a `sha-<commit>` tag.
+  Temporarily set e.g.
+  `image: ghcr.io/qbert18/rag-api-frontend:sha-1a2b3c4` and
+  `docker compose --profile tunnel up -d frontend`.
+- **Force an immediate update check** — `docker restart rag-watchtower`.
 
 ## Security
 
