@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     cors_allow_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
 
     ollama_base_url: str = "http://localhost:11434"
-    ollama_chat_model: str = "gemma4"
+    ollama_chat_model: str = "gemma3:1b"
     ollama_embedding_model: str = "nomic-embed-text"
 
     chroma_db_path: str = "./chroma_db"

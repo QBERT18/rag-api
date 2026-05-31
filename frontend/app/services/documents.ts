@@ -1,4 +1,4 @@
-const API = 'http://localhost:8000'
+const apiBase = () => useRuntimeConfig().public.apiBase
 
 export interface Document {
   filename: string
@@ -11,7 +11,7 @@ export interface UploadResult {
 }
 
 export function listDocuments(workspaceId: string): Promise<Document[]> {
-  return $fetch<Document[]>(`${API}/workspaces/${workspaceId}/documents`)
+  return $fetch<Document[]>(`${apiBase()}/workspaces/${workspaceId}/documents`)
 }
 
 export function uploadDocument(
@@ -20,7 +20,7 @@ export function uploadDocument(
 ): Promise<UploadResult> {
   const form = new FormData()
   form.append('file', file)
-  return $fetch<UploadResult>(`${API}/workspaces/${workspaceId}/documents`, {
+  return $fetch<UploadResult>(`${apiBase()}/workspaces/${workspaceId}/documents`, {
     method: 'POST',
     body: form,
   })
@@ -31,13 +31,13 @@ export function deleteDocument(
   filename: string,
 ): Promise<void> {
   return $fetch(
-    `${API}/workspaces/${workspaceId}/documents/${encodeURIComponent(filename)}`,
+    `${apiBase()}/workspaces/${workspaceId}/documents/${encodeURIComponent(filename)}`,
     { method: 'DELETE' },
   )
 }
 
 export function clearAll(workspaceId: string): Promise<void> {
-  return $fetch(`${API}/workspaces/${workspaceId}/documents`, {
+  return $fetch(`${apiBase()}/workspaces/${workspaceId}/documents`, {
     method: 'DELETE',
   })
 }

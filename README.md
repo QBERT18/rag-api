@@ -56,9 +56,10 @@ cd rag-api
 
 ### 2. (Optional) pick different models
 
-The defaults are `gemma3:4b` for chat and `nomic-embed-text` for
-embeddings. To use different ones, copy `.env.example` to `.env` and
-edit:
+The defaults are `gemma3:1b` for chat (small enough for a ~4 GB-RAM
+server) and `nomic-embed-text` for embeddings. On a bigger machine
+`gemma3:4b` gives better answers. To use different ones, copy
+`.env.example` to `.env` and edit:
 
 ```bash
 cp .env.example .env
@@ -125,6 +126,12 @@ installed, add this block under `ollama:` in [docker-compose.yml](docker-compose
 
 Then `docker compose up`. Backend talks to Ollama over HTTP either way.
 
+### Public hosting via ngrok (optional)
+
+To expose the stack on a server without a domain, see
+[GUIDE.md](GUIDE.md) — a Caddy reverse proxy behind a single ngrok tunnel,
+started with `docker compose --profile tunnel up`.
+
 ---
 
 ## Manual setup (without Docker)
@@ -138,7 +145,7 @@ both backend and frontend.
 - **Node 22+**
 - A running **Ollama** instance with your chosen models pulled:
   ```bash
-  ollama pull gemma3:4b
+  ollama pull gemma3:1b
   ollama pull nomic-embed-text
   ```
 
@@ -172,7 +179,7 @@ runs on a non-default URL.
 | Variable | Default | Description |
 |---|---|---|
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama HTTP endpoint (Docker uses `http://ollama:11434` internally). |
-| `OLLAMA_CHAT_MODEL` | `gemma3:4b` | Chat model tag. |
+| `OLLAMA_CHAT_MODEL` | `gemma3:1b` | Chat model tag (small; bump to `gemma3:4b` if RAM allows). |
 | `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text` | Embedding model tag. |
 | `CHROMA_DB_PATH` | `./chroma_db` | Chroma persistence directory (Docker: `/data/chroma_db` on the `backend_data` volume). |
 | `WORKSPACE_DB_PATH` | `./workspace.db` | SQLite path for workspaces + chat history. |

@@ -21,6 +21,9 @@ dist/
 chroma_db/
 backend/chroma_db/
 
+# Docker bind-mount data (models, Chroma, SQLite)
+/data/
+
 # SQLite DBs (created at runtime)
 backend/*.db
 backend/*.db-*

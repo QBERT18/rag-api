@@ -1,4 +1,4 @@
-const API = 'http://localhost:8000'
+const apiBase = () => useRuntimeConfig().public.apiBase
 
 export interface Workspace {
   id: string
@@ -12,7 +12,7 @@ async function jsonRequest<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
@@ -46,6 +46,6 @@ export function renameWorkspace(id: string, name: string): Promise<Workspace> {
 }
 
 export async function deleteWorkspace(id: string): Promise<void> {
-  const res = await fetch(`${API}/workspaces/${id}`, { method: 'DELETE' })
+  const res = await fetch(`${apiBase()}/workspaces/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
 }

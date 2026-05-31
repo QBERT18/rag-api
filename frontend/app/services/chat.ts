@@ -1,4 +1,4 @@
-const API = 'http://localhost:8000'
+const apiBase = () => useRuntimeConfig().public.apiBase
 
 export interface Citation {
   filename: string
@@ -20,7 +20,7 @@ async function jsonRequest<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
@@ -43,7 +43,7 @@ export async function streamAsk(
   onDone?: (messageId: number) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const url = `${API}/ask/${workspaceId}/stream?question=${encodeURIComponent(question)}`
+  const url = `${apiBase()}/ask/${workspaceId}/stream?question=${encodeURIComponent(question)}`
   const res = await fetch(url, { signal })
   if (!res.ok || !res.body) {
     throw new Error(`Stream failed: ${res.status} ${res.statusText}`)

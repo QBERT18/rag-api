@@ -3,7 +3,7 @@ services:
     image: ollama/ollama:latest
     container_name: rag-ollama
     volumes:
-      - ollama_data:/root/.ollama
+      - ./data/ollama:/root/.ollama
     ports:
       - "11434:11434"
     healthcheck:
@@ -22,7 +22,7 @@ services:
         condition: service_healthy
     environment:
       OLLAMA_HOST: http://ollama:11434
-      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-gemma3:4b}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-gemma3:1b}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -44,13 +44,13 @@ services:
         condition: service_completed_successfully
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-gemma3:4b}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-gemma3:1b}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
       CHROMA_DB_PATH: /data/chroma_db
       WORKSPACE_DB_PATH: /data/workspace.db
       CORS_ALLOW_ORIGINS: http://localhost:3000
     volumes:
-      - backend_data:/data
+      - ./data/backend:/data
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -64,10 +64,31 @@ services:
     environment:
       NUXT_HOST: 0.0.0.0
       NUXT_PORT: "3000"
+      NUXT_PUBLIC_API_BASE: ${FRONTEND_API_BASE:-http://localhost:8000}
     ports:
       - "3000:3000"
     restart: unless-stopped
 
-volumes:
-  ollama_data:
-  backend_data:
+  caddy:
+    image: caddy:2-alpine
+    container_name: rag-caddy
+    profiles: ["tunnel"]
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    restart: unless-stopped
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: rag-ngrok
+    profiles: ["tunnel"]
+    depends_on:
+      - caddy
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    command: ["http", "caddy:80", "--log=stdout"]
+    ports:
+      - "4040:4040"   # ngrok inspector — read the public URL here
+    restart: unless-stopped

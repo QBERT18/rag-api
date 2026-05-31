@@ -16,7 +16,7 @@ Top-level `Makefile` handles both backend and frontend (Windows/Unix branches in
 
 No test suite, linter, or formatter is configured. Backend has no `__init__.py` at root — `uvicorn` is invoked from inside `backend/`, so imports like `from config import settings` resolve. Don't add package-style imports (`from backend.config ...`); they break the dev server.
 
-External dependency: a running **Ollama** instance with the configured chat + embedding models pulled (defaults `gemma4` and `nomic-embed-text`). The app will fail at request time, not import time, if Ollama is unreachable.
+External dependency: a running **Ollama** instance with the configured chat + embedding models pulled (defaults `gemma3:1b` and `nomic-embed-text`). The app will fail at request time, not import time, if Ollama is unreachable.
 
 ## Configuration
 

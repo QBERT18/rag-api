@@ -4,6 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  runtimeConfig: {
+    public: {
+      apiBase: 'http://localhost:8000', // overridden by NUXT_PUBLIC_API_BASE
+    },
+  },
   modules: ['@nuxtjs/color-mode', '@nuxt/icon'],
   css: ['~/assets/css/main.css'],
   colorMode: {
