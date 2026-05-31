@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SortKey } from '~/composables/useViewPreferences'
+import type { Workspace } from '~/services/workspaces'
 
 const router = useRouter()
 const {
@@ -14,6 +15,7 @@ const { viewMode, sortKey } = useViewPreferences()
 
 const error = ref<string | null>(null)
 const query = ref('')
+const pendingDelete = ref<Workspace | null>(null)
 
 onMounted(async () => {
   try {
@@ -65,13 +67,24 @@ async function onRename(id: string, name: string) {
   }
 }
 
-async function onDelete(id: string) {
+function onDelete(id: string) {
+  pendingDelete.value = workspaces.value.find((w) => w.id === id) ?? null
+}
+
+async function confirmDelete() {
+  const ws = pendingDelete.value
+  if (!ws) return
+  pendingDelete.value = null
   error.value = null
   try {
-    await deleteWorkspace(id)
+    await deleteWorkspace(ws.id)
   } catch (e) {
     error.value = (e as Error).message
   }
+}
+
+function cancelDelete() {
+  pendingDelete.value = null
 }
 
 function setSort(key: SortKey) {
@@ -157,5 +170,19 @@ function setSort(key: SortKey) {
         </div>
       </template>
     </main>
+
+    <ConfirmDialog
+      :open="!!pendingDelete"
+      title="Delete workspace?"
+      :message="
+        pendingDelete
+          ? `“${pendingDelete.name}” and all its files and chat will be permanently deleted.`
+          : ''
+      "
+      confirm-label="Delete"
+      tone="danger"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>

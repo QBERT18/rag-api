@@ -69,9 +69,7 @@ function cancelRename() {
 
 function onDelete() {
   menuOpen.value = false
-  if (window.confirm(`Delete workspace "${props.workspace.name}"? Files and chat will be lost.`)) {
-    emit('delete', props.workspace.id)
-  }
+  emit('delete', props.workspace.id)
 }
 
 function onCardClick() {
