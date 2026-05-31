@@ -15,6 +15,7 @@ async function jsonRequest<T>(
   const res = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
+      'ngrok-skip-browser-warning': 'true',
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers ?? {}),
     },
@@ -46,6 +47,9 @@ export function renameWorkspace(id: string, name: string): Promise<Workspace> {
 }
 
 export async function deleteWorkspace(id: string): Promise<void> {
-  const res = await fetch(`${apiBase()}/workspaces/${id}`, { method: 'DELETE' })
+  const res = await fetch(`${apiBase()}/workspaces/${id}`, {
+    method: 'DELETE',
+    headers: { 'ngrok-skip-browser-warning': 'true' },
+  })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
 }

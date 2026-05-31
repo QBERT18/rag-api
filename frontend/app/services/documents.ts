@@ -1,4 +1,5 @@
 const apiBase = () => useRuntimeConfig().public.apiBase
+const NGROK_HEADERS = { 'ngrok-skip-browser-warning': 'true' }
 
 export interface Document {
   filename: string
@@ -11,7 +12,9 @@ export interface UploadResult {
 }
 
 export function listDocuments(workspaceId: string): Promise<Document[]> {
-  return $fetch<Document[]>(`${apiBase()}/workspaces/${workspaceId}/documents`)
+  return $fetch<Document[]>(`${apiBase()}/workspaces/${workspaceId}/documents`, {
+    headers: NGROK_HEADERS,
+  })
 }
 
 export function uploadDocument(
@@ -23,6 +26,7 @@ export function uploadDocument(
   return $fetch<UploadResult>(`${apiBase()}/workspaces/${workspaceId}/documents`, {
     method: 'POST',
     body: form,
+    headers: NGROK_HEADERS,
   })
 }
 
@@ -32,12 +36,13 @@ export function deleteDocument(
 ): Promise<void> {
   return $fetch(
     `${apiBase()}/workspaces/${workspaceId}/documents/${encodeURIComponent(filename)}`,
-    { method: 'DELETE' },
+    { method: 'DELETE', headers: NGROK_HEADERS },
   )
 }
 
 export function clearAll(workspaceId: string): Promise<void> {
   return $fetch(`${apiBase()}/workspaces/${workspaceId}/documents`, {
     method: 'DELETE',
+    headers: NGROK_HEADERS,
   })
 }

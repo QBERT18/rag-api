@@ -23,6 +23,7 @@ async function jsonRequest<T>(
   const res = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
+      'ngrok-skip-browser-warning': 'true',
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers ?? {}),
     },
@@ -44,7 +45,10 @@ export async function streamAsk(
   signal?: AbortSignal,
 ): Promise<void> {
   const url = `${apiBase()}/ask/${workspaceId}/stream?question=${encodeURIComponent(question)}`
-  const res = await fetch(url, { signal })
+  const res = await fetch(url, {
+    signal,
+    headers: { 'ngrok-skip-browser-warning': 'true' },
+  })
   if (!res.ok || !res.body) {
     throw new Error(`Stream failed: ${res.status} ${res.statusText}`)
   }
