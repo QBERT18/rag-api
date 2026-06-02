@@ -96,7 +96,7 @@ services:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
     command: ["http", "caddy:80", "--log=stdout"]
     ports:
-      - "4040:4040"   # ngrok inspector — read the public URL here
+      - "4041:4040"   # ngrok inspector — read the public URL here (host 4041 → container 4040)
     restart: unless-stopped
 
   # Auto-pulls new backend/frontend images from GHCR and recreates them.

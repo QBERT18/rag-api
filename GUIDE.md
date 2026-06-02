@@ -35,7 +35,7 @@ docker compose logs -f ollama-init      # Ctrl-C when it prints "Models ready."
 
 # 6. Get your public URL (one of):
 docker logs rag-ngrok | grep -i "url="   # look for url=https://....ngrok-free.app
-#   or open the ngrok inspector:  http://<your-server-ip>:4040
+#   or open the ngrok inspector:  http://<your-server-ip>:4041
 ```
 
 Open the printed `https://....ngrok.app` URL in any browser. Create a
@@ -146,5 +146,5 @@ You never build on the server again.
 ## Security
 
 The app has no authentication — anyone with the ngrok URL can use it. The
-direct host ports (`8000`, `3000`, `4040`) are also open if your firewall
+direct host ports (`8000`, `3000`, `4041`) are also open if your firewall
 allows them; restrict them so traffic only enters through ngrok.
